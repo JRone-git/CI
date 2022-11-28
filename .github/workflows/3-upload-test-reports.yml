@@ -47,12 +47,11 @@ jobs:
         env:
           FILE: .github/workflows/ci.yml
           SEARCH: actions/upload-artifact
-            build:
-    runs-on: ubuntu-latest
+build:
+  runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Run markdown lint
+       - name: Run markdown lint
+        uses: actions/checout@v2
         run: |
           npm install remark-cli remark-preset-lint-consistent
           npx remark . --use remark-preset-lint-consistent --frail
