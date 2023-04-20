@@ -1,0 +1,99 @@
+import dataclasses
+import os
+import tkinter as tk
+import pandas as pd
+from tkinter import *
+from tkinter import filedialog
+import tkinter.filedialog
+from tkinter import messagebox, filedialog
+import pandas as pd
+from selenium import webdriver
+import xlrd
+
+#Määritetään funktio, joka lukee Excel-tiedoston
+
+def read_excel():
+    
+    file_path = file_path = filedialog.askopenfilename(filetypes="")
+    
+    print(file_path)
+
+    if not file_path:
+        return
+
+    try:
+        df = pd.read_csv(file_path)
+    except  xlrd.XLRDError:
+        print("Virhe: valittu tiedosto ei ole sallittu")
+        return None
+    return df.values.tolist()    
+
+
+#Luetaan Excel-tiedosto
+data = read_excel()
+
+#Pyydetään käyttäjää syöttämään nettisivun osoite
+url = input("Anna nettisivun osoite: ")
+
+#Pyydetään käyttäjää valitsemaan, haluaako hän muokata tietoja sivulla
+
+edit = input("Haluatko muokata tietoja sivulla? (y/n): ").lower() == "y"
+
+
+
+# Määritetään funktio, joka listaa kaikki tekstikentät ja antaa käyttäjän valita, mitkä haluaa muokata
+def choose_inputs(driver):
+    # Etsitään kaikki elementit, joihin voi kirjoittaa
+    input_elements = driver.find_element(By.XPATH, "//input[@type='text']")
+    text_elements = driver.find_element(By.XPATH, "//textarea")
+    
+    # Lisätään kaikki elementit listaan
+    all_elements = input_elements + text_elements
+    
+    # Tulostetaan elementtien tiedot käyttäjälle ja kysytään, mitä halutaan muokata
+    print("Löydetyt tekstikentät:")
+    for i in range(len(all_elements)):
+        element_text = all_elements[i].get_attribute("placeholder")
+        if not element_text:
+            element_text = all_elements[i].text
+        print(f"{i+1}. {element_text}")
+    
+    choices = input("Valitse muokattavat kentät pilkulla erotettuna: ")
+    choice_list = [int(c.strip()) for c in choices.split(",")]
+    
+    # Palautetaan valitut elementit
+    return [all_elements[i-1] for i in choice_list]
+
+# Määritetään funktio, joka suorittaa tiedon lähetyksen nettisivulle
+def send_data(url, data, edit):
+    # Avataan selain ja navigoidaan sivulle
+    driver = webdriver.Chrome()
+    driver.get(url)
+    
+    # Kutsutaan funktiota, joka antaa käyttäjän valita muokattavat elementit
+    if edit:
+        input_elements = choose_inputs(driver)
+    else:
+        input_elements = driver.find_elements_by_xpath("//input[@type='text']") + driver.find_elements_by_xpath("//textarea")
+    
+    # Kirjoitetaan jokaiselle elementille tiedot
+    for i in range(len(input_elements)):
+        if i < len(data):
+            if edit:
+                # Kysytään käyttäjältä, haluaako hän muokata tätä kenttää sivulla
+                answer = input(f"Haluatko muokata kenttää {i+1} sivulla? (y/n): ")
+                if answer.lower() == "y":
+                    input_elements[i].click()
+                    input_elements[i].clear()
+                    input_elements[i].send_keys(str(input(f"Anna uusi arvo kentälle {i+1}: ")))
+                else:
+                    input_elements[i].send_keys(str(data[i]))
+            else:
+                input_elements[i].send_keys(str(data[i]))
+#Lähetetään tiedot sivulle
+
+send_data(url, dataclasses, edit)
+
+    
+# Suljetaan selain
+# driver.quit()
